@@ -201,15 +201,4 @@ If you use this code in your research, please cite:
 
 ---
 
-## License
 
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
-
----
-
-## Contact
-
-**Aniket Gundecha**  
-Department of Electronic and Telecommunication  
-MIT Academy of Engineering, Alandi, Pune 412105, India  
-📧 author@mitaoe.ac.in
