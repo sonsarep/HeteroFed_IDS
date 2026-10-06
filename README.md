@@ -7,8 +7,8 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.XXXXXXX.svg)](https://doi.org/10.5281/zenodo.XXXXXXX)
 
 > **Paper:** HeteroFed-IDS: A Personalised Asynchronous Federated Intrusion Detection Framework for Heterogeneous IoT Edge Networks  
-> **Author:** Aniket Gundecha, MIT Academy of Engineering, Pune, India  
-> **Submitted to:** IEEE Access
+> **Author:** Aniket D. Gundecha, Rahul B. Adhao, Pramod M. Bachiphale, P. S. G. Aruna Sri, Gaurav Kumar, Rahul Joshi, Sandeep D. Pande, Pravinkumar Sonsare  
+> 
 
 ---
 
