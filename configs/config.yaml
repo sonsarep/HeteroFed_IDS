@@ -1,0 +1,123 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# HeteroFed-IDS Configuration
+# All values exactly match the paper's experimental setup (Section V)
+# ══════════════════════════════════════════════════════════════════════════════
+
+federation:
+  num_clients: 50               # Total FL clients
+  gateway_fraction: 0.70        # 35 of 50 = gateway-class (CNN-BiLSTM)
+  straggler_fraction: 0.30      # 15 of 50 = MCU stragglers (MLP, 4x slower)
+  dirichlet_alpha: 0.10         # Non-IID label skew (lower = more skewed)
+  num_rounds: 100               # Communication rounds
+  local_epochs: 3               # Local SGD epochs per round
+  local_batch_size: 64
+  learning_rate: 0.001
+  optimizer: "adam"
+  seeds: [42, 123, 456, 789, 1011]   # 5 independent runs
+
+dataset:
+  name: "CICIoT2023"            # CICIoT2023 | Edge-IIoTset | TON_IoT
+  num_features: 47              # Flow-level features
+  num_classes: 33               # Attack + benign classes
+  train_fraction: 0.70          # Chronological split
+  test_fraction: 0.30
+  minority_threshold: 0.05      # Classes below this are "minority"
+
+# ── Component 1: DBEC ─────────────────────────────────────────────────────────
+dbec:
+  embed_dim: 128                # Penultimate encoder layer dimension
+  sample_size: 200              # Flows sampled per client per epoch
+  coldstart_sample_size: 50     # Flows for newly joined devices (warm-start)
+  k_range_small: [3, 5, 7]     # k candidates when K <= 100
+  k_range_large: [3, 5, 7, 10, 15, 20]  # k candidates when K > 100
+  hierarchical_threshold: 200  # Use hierarchical DBEC when K > this
+  kmeans_iterations: 100
+  recluster_every_rounds: 5    # Re-run DBEC every N rounds
+  upload_bytes: 512             # Embedding upload cost per client per epoch
+
+# ── Component 2: SAA ──────────────────────────────────────────────────────────
+saa:
+  tau_max: 10                   # Max accepted staleness (rounds)
+  alpha: 0.10                   # Staleness decay: phi(tau) = 1/(1 + alpha*tau^2)
+  ema_gamma: 0.10               # EMA decay for cluster centroid update
+  theta_gate: 0.30              # Cosine-similarity Byzantine filter threshold
+                                # (= 5th percentile of legitimate client scores)
+  w_min_guard: 1.0e-6           # If W < w_min_guard, skip aggregation
+
+# ── Component 3: CCKD ─────────────────────────────────────────────────────────
+cckd:
+  probe_set_size: 2048          # Unlabelled flows in public probe set
+  temperature: 3                # KD temperature T
+  lambda_kd: 0.50               # KD loss weight: L = (1-lambda)*L_CE + lambda*L_KD
+  precision: "float32"          # Logit transmission precision
+  upload_mb: 0.42               # Approx logit upload per client per round
+
+# ── Differential Privacy ──────────────────────────────────────────────────────
+privacy:
+  dp_sigma: 0.80                # Gaussian noise std dev on logit uploads
+  C_clip: 1.0                   # L2 clipping norm (sensitivity = C_clip)
+  rdp_order: 8                  # Rényi order for RDP accountant
+  dp_delta: 1.0e-5              # Target delta
+  dp_epsilon_target: 8.0        # Expected epsilon after num_rounds rounds
+
+# ── Byzantine Robustness ──────────────────────────────────────────────────────
+byzantine:
+  trimmed_mean_fraction: 0.10   # Fraction trimmed from each end per coordinate
+  # Evaluation attack types (for experiments/byzantine_eval.py)
+  attack_types:
+    - "label_flipping"
+    - "sign_flipping"
+    - "gaussian_noise"
+    - "model_replacement"
+    - "adaptive_centroid_mimicking"
+  byzantine_fractions: [0.0, 0.05, 0.10, 0.20, 0.30]
+
+# ── Model Architectures ───────────────────────────────────────────────────────
+models:
+  gateway:
+    type: "cnn_bilstm"
+    conv_channels: [64, 128]
+    lstm_hidden: 128
+    lstm_layers: 2
+    dropout: 0.30
+    param_mb: 4.81              # Measured parameter size
+    latency_ms: 1.6             # Measured on Raspberry Pi 5
+
+  microcontroller:
+    type: "mlp"
+    hidden_dims: [256, 128, 64]
+    dropout: 0.20
+    param_mb: 0.38
+    latency_ms: 0.9             # Measured on ESP32 simulation
+
+  encoder:
+    type: "byte_stream_encoder"
+    input_dim: 47
+    hidden_dims: [256, 256]
+    embed_dim: 128
+
+# ── Baselines ─────────────────────────────────────────────────────────────────
+baselines:
+  fedprox_mu: 0.01
+  scaffold_lr: 0.001
+  moon_temperature: 0.5
+  moon_mu: 1.0
+  ditto_lambda: 0.1
+  fedmade_k_clusters: 5
+
+# ── Hardware ──────────────────────────────────────────────────────────────────
+hardware:
+  straggler_slowdown: 4         # MCU trains 4x slower than gateway
+  physical_devices: 10          # Physical RPi 5 devices used for measurement
+  simulated_devices: 40         # Remaining clients simulated on RTX A5000
+  power_meter: "Fnirsi FNB58"  # USB power meter model
+  sampling_rate_hz: 100         # Power meter sampling rate
+
+# ── Experiment Output ─────────────────────────────────────────────────────────
+experiment:
+  results_dir: "results/"
+  figures_dir: "results/figures/"
+  tables_dir: "results/tables/"
+  plot_dpi: 180
+  save_checkpoints: true
+  checkpoint_dir: "checkpoints/"
